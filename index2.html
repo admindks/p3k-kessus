@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KESSUS - Dashboard Kegiatan P3K 2026 - Dinkes Sleman</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            kessus: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+              dark: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- TOP HEADER / NAVBAR -->
+  <header class="bg-gradient-to-r from-emerald-900 via-teal-800 to-slate-900 text-white shadow-md border-b border-emerald-700/50 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-start">
+        <div class="flex items-center space-x-3">
+          <div class="bg-emerald-500/20 p-2.5 rounded-xl border border-emerald-400/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">
+            <i class="fa-solid fa-notes-medical"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="bg-emerald-500 text-slate-950 font-extrabold text-[11px] tracking-wider uppercase px-2 py-0.5 rounded shadow">KESSUS</span>
+              <span class="text-xs text-emerald-300 font-medium">Kabupaten Sleman</span>
+            </div>
+            <h1 class="text-lg md:text-xl font-bold text-white leading-tight mt-0.5">
+              Dashboard Kegiatan P3K 2026
+            </h1>
+            <p class="text-xs text-slate-300">Sub Bagian Kessus - Bidang Pelayanan Kesehatan Dinkes Sleman</p>
+          </div>
+        </div>
+
+        <button onclick="toggleMobileSummary()" class="md:hidden text-slate-300 hover:text-white p-2 text-xl">
+          <i class="fa-solid fa-chart-pie"></i>
+        </button>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="flex items-center space-x-2.5 w-full md:w-auto justify-end">
+        <button id="addAgendaBtn" onclick="openAddModal()" class="hidden px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-semibold rounded-lg text-xs md:text-sm flex items-center justify-center space-x-2 transition shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Tambah Agenda</span>
+        </button>
+
+        <button id="resetDbBtn" onclick="resetDatabaseToDefault()" class="hidden px-3 py-2 bg-red-600/80 hover:bg-red-700 text-white rounded-lg text-xs transition flex items-center space-x-1" title="Reset Data Excel Default">
+          <i class="fa-solid fa-rotate"></i>
+          <span class="hidden sm:inline">Reset DB</span>
+        </button>
+
+        <button id="adminLoginBtn" onclick="toggleAuthModal()" class="px-3.5 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg text-xs md:text-sm border border-emerald-500/40 transition flex items-center space-x-1.5">
+          <i id="authIcon" class="fa-solid fa-right-to-bracket"></i>
+          <span id="authBtnText">Login Admin</span>
+        </button>
+
+        <button onclick="exportData()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs md:text-sm border border-slate-700 transition flex items-center space-x-1.5" title="Export Excel / CSV">
+          <i class="fa-solid fa-file-excel text-emerald-400"></i>
+          <span class="hidden sm:inline">Export</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- USER STATUS BANNER -->
+    <div id="statusBanner" class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2.5 rounded-xl text-xs flex items-center justify-between shadow-sm">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-circle-info text-blue-600 text-sm"></i>
+        <span>Anda sedang melihat <strong>Mode Tamu (Read-Only)</strong>. Silakan klik tombol <strong>Login Admin</strong> untuk melakukan manajemen data.</span>
+      </div>
+      <span class="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded uppercase">Public Mode</span>
+    </div>
+
+    <!-- KPI STATS CARDS -->
+    <div id="statsSummaryContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center space-x-4">
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-xl flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500">Total Kegiatan P3K</p>
+          <h3 class="text-2xl font-bold text-slate-900" id="kpiTotal">0</h3>
+          <p class="text-[11px] text-emerald-600 font-medium">Terdaftar di Database</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center space-x-4">
+        <div class="p-3 bg-teal-50 text-teal-600 rounded-lg text-xl flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500">Kegiatan Selesai</p>
+          <h3 class="text-2xl font-bold text-teal-700" id="kpiCompleted">0</h3>
+          <p class="text-[11px] text-teal-600 font-medium">Telah Terlaksana</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center space-x-4">
+        <div class="p-3 bg-amber-50 text-amber-600 rounded-lg text-xl flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500">Mendatang / Terjadwal</p>
+          <h3 class="text-2xl font-bold text-amber-600" id="kpiPending">0</h3>
+          <p class="text-[11px] text-amber-600 font-medium">Pengawalan Medis</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm hover:shadow-md transition flex items-center space-x-4">
+        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg text-xl flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-user-doctor"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500">Puskesmas / Tim Medis</p>
+          <h3 class="text-2xl font-bold text-blue-700" id="kpiUnits">0</h3>
+          <p class="text-[11px] text-blue-600 font-medium">Unit Terlibat</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTER & SEARCH BAR -->
+    <div class="bg-white rounded-xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="relative flex-grow max-w-md">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            oninput="applyFilters()" 
+            placeholder="Cari kegiatan, petugas, lokasi, atau pemohon..." 
+            class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+          />
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="monthFilter" onchange="applyFilters()" class="px-3 py-2 text-xs md:text-sm bg-slate-50 border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="ALL">Semua Bulan</option>
+            <option value="Juni">Juni 2026</option>
+            <option value="Agustus">Agustus 2026</option>
+          </select>
+
+          <select id="statusFilter" onchange="applyFilters()" class="px-3 py-2 text-xs md:text-sm bg-slate-50 border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="ALL">Semua Status</option>
+            <option value="Selesai">Selesai</option>
+            <option value="Belum Selesai / Terjadwal">Belum Selesai / Terjadwal</option>
+          </select>
+
+          <button onclick="resetFilters()" class="px-3 py-2 text-xs md:text-sm bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition font-medium flex items-center space-x-1">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS NAVIGATION -->
+    <div class="border-b border-slate-200">
+      <nav class="flex space-x-4 md:space-x-8" aria-label="Tabs">
+        <button onclick="switchTab('table')" id="tabBtn-table" class="tab-btn px-3 py-2.5 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-700 flex items-center space-x-2">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Daftar Kegiatan (Tabel)</span>
+        </button>
+
+        <button onclick="switchTab('calendar')" id="tabBtn-calendar" class="tab-btn px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center space-x-2">
+          <i class="fa-regular fa-calendar-days"></i>
+          <span>Tampilan Kalender Agenda</span>
+        </button>
+
+        <button onclick="switchTab('analytics')" id="tabBtn-analytics" class="tab-btn px-3 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 flex items-center space-x-2">
+          <i class="fa-solid fa-chart-column"></i>
+          <span>Grafik & Analisis</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- TAB CONTENTS -->
+
+    <!-- TAB 1: TABLE VIEW -->
+    <div id="tabContent-table" class="tab-content space-y-4">
+      <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100/80 text-slate-700 font-semibold text-xs uppercase tracking-wider border-b border-slate-200">
+                <th class="py-3 px-4 w-12 text-center">No</th>
+                <th class="py-3 px-4">Tanggal / Waktu</th>
+                <th class="py-3 px-4">Nama Kegiatan P3K</th>
+                <th class="py-3 px-4">Pemohon</th>
+                <th class="py-3 px-4">Petugas / Tim Medis</th>
+                <th class="py-3 px-4">Lokasi</th>
+                <th class="py-3 px-4 text-center">Status</th>
+                <th class="admin-only-col py-3 px-4 text-center hidden">Aksi Admin</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody" class="divide-y divide-slate-100 text-slate-700">
+            </tbody>
+          </table>
+        </div>
+        
+        <div id="emptyState" class="hidden p-8 text-center text-slate-400">
+          <i class="fa-solid fa-inbox text-4xl mb-2 text-slate-300"></i>
+          <p class="text-sm font-medium">Tidak ada data kegiatan yang sesuai dengan pencarian/filter.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CALENDAR VIEW -->
+    <div id="tabContent-calendar" class="tab-content hidden space-y-4">
+      <div class="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b pb-3 border-slate-100">
+          <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-calendar-week text-emerald-600"></i>
+            <span>Agenda Kegiatan P3K 2026</span>
+          </h2>
+          <span class="text-xs bg-slate-100 text-slate-600 font-medium px-2.5 py-1 rounded-full">Sub Bagian Kessus</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-200 pb-2">
+              <h3 class="font-bold text-emerald-800 text-sm flex items-center space-x-2">
+                <i class="fa-solid fa-sun text-amber-500"></i>
+                <span>JUNI 2026</span>
+              </h3>
+              <span id="juneBadge" class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">0 Agenda</span>
+            </div>
+            <div id="juneCalendarList" class="space-y-2"></div>
+          </div>
+
+          <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-200 pb-2">
+              <h3 class="font-bold text-emerald-800 text-sm flex items-center space-x-2">
+                <i class="fa-solid fa-flag text-red-500"></i>
+                <span>AGUSTUS 2026</span>
+              </h3>
+              <span id="augustBadge" class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">0 Agenda</span>
+            </div>
+            <div id="augustCalendarList" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ANALYTICS & CHARTS VIEW -->
+    <div id="tabContent-analytics" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+          <h3 class="text-sm font-bold text-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-hospital-user text-emerald-600"></i>
+            <span>Frekuensi Penugasan Per Puskesmas / Faskes</span>
+          </h3>
+          <div class="relative h-64 w-full">
+            <canvas id="petugasChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+          <h3 class="text-sm font-bold text-slate-800 flex items-center space-x-2">
+            <i class="fa-solid fa-building text-teal-600"></i>
+            <span>Distribusi Instansi Pemohon P3K</span>
+          </h3>
+          <div class="relative h-64 w-full">
+            <canvas id="pemohonChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 mt-12 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow">K</div>
+        <div>
+          <p class="text-slate-200 font-semibold">KESSUS - Sub Bagian Pelayanan Kesehatan Khusus</p>
+          <p class="text-slate-500">Dinas Kesehatan Kabupaten Sleman &copy; 2026</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4 text-slate-400">
+        <span class="flex items-center space-x-1">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Database Aktif (localStorage)</span>
+        </span>
+        <span>|</span>
+        <span>Sistem Informasi Kessus v2.5</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL LOGIN ADMIN -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-sm overflow-hidden transform transition-all">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center space-x-2">
+          <i class="fa-solid fa-user-shield text-emerald-400"></i>
+          <span>Autentikasi Admin KESSUS</span>
+        </h3>
+        <button onclick="closeLoginModal()" class="text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="p-5 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Username Admin</label>
+          <input type="text" id="loginUsername" required placeholder="Username" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+        </div>
+
+        <div class="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+          <button type="button" onclick="closeLoginModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-semibold text-slate-950 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition">Masuk</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL ADD / EDIT AGENDA -->
+  <div id="addModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden transform transition-all">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center space-x-2">
+          <i class="fa-solid fa-calendar-plus text-emerald-400"></i>
+          <span id="modalFormTitle">Tambah Agendakan Tugas P3K Baru</span>
+        </h3>
+        <button onclick="closeAddModal()" class="text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="addEventForm" onsubmit="handleFormSubmit(event)" class="p-5 space-y-4">
+        <input type="hidden" id="formEditId" value="" />
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Kegiatan P3K</label>
+          <input type="text" id="formNama" required placeholder="Contoh: Pengawalan Medis Gala Siswa Indonesia" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal</label>
+            <input type="text" id="formTanggal" required placeholder="Contoh: 15 Juni 2026" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Bulan</label>
+            <select id="formBulan" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="Juni">Juni</option>
+              <option value="Agustus">Agustus</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Instansi Pemohon</label>
+            <input type="text" id="formPemohon" required placeholder="Contoh: Dispora / BKPP" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi Pelaksanaan</label>
+            <input type="text" id="formLokasi" required placeholder="Contoh: Stadion Tridadi" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Petugas Tim Medis / Puskesmas</label>
+          <input type="text" id="formPetugas" required placeholder="Contoh: PKM Minggir / Klinik Dialiva" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Status Kegiatan</label>
+          <select id="formStatus" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <option value="Selesai">Selesai</option>
+            <option value="Belum Selesai / Terjadwal" selected>Belum Selesai / Terjadwal</option>
+          </select>
+        </div>
+
+        <div class="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+          <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
+          <button type="submit" class="px-4 py-2 text-xs font-semibold text-slate-950 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition">Simpan Agenda</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-xl text-xs flex items-center space-x-2 transition-all transform translate-y-20 opacity-0 z-50">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toastMsg">Notifikasi</span>
+  </div>
+
+  <!-- JAVASCRIPT & DATABASE LOGIC -->
+  <script>
+    // Initial Dataset parsed precisely from Excel "Kegiatan P3K Kessus 2026.xlsx"
+    const defaultExcelData = [
+      { id: 1, tanggal: "09 Juni 2026", bulan: "Juni", kegiatan: "Orientasi Nilai dan Etika pada Instansi Pemerintah bagi PPPK", pemohon: "BKPP", petugas: "PKM Minggir", lokasi: "BKPP", status: "Selesai" },
+      { id: 2, tanggal: "14 Juni 2026", bulan: "Juni", kegiatan: "Fun Run HUT SMKN 2 Depok", pemohon: "SMKN 2 Depok", petugas: "Klinik Dialiva", lokasi: "SMKN 2 Depok", status: "Selesai" },
+      { id: 3, tanggal: "14 Juni 2026", bulan: "Juni", kegiatan: "Fun Run HUT SMKN 2 Depok", pemohon: "SMKN 2 Depok", petugas: "PKM Depok 3", lokasi: "SMKN 2 Depok", status: "Selesai" },
+      { id: 4, tanggal: "22 Juni 2026", bulan: "Juni", kegiatan: "Gala Siswa Indonesia (GSI)", pemohon: "Dispora", petugas: "PKM Minggir", lokasi: "Stadion Tridadi", status: "Selesai" },
+      { id: 5, tanggal: "23 Juni 2026", bulan: "Juni", kegiatan: "Orientasi Nilai dan Etika pada Instansi Pemerintah bagi PPPK", pemohon: "BKPP", petugas: "PKM Seyegan", lokasi: "SMKN 2 Depok", status: "Selesai" },
+      { id: 6, tanggal: "23 Juni 2026", bulan: "Juni", kegiatan: "Gala Siswa Indonesia (GSI)", pemohon: "Dispora", petugas: "PKM Tempel 1", lokasi: "Stadion Tridadi", status: "Selesai" },
+      { id: 7, tanggal: "24 Juni 2026", bulan: "Juni", kegiatan: "Gala Siswa Indonesia (GSI)", pemohon: "Dispora", petugas: "PKM Turi", lokasi: "Stadion Tridadi", status: "Belum Selesai / Terjadwal" },
+      { id: 8, tanggal: "27 Juni 2026", bulan: "Juni", kegiatan: "Pagelaran Wayang", pemohon: "SMKN 2 Depok", petugas: "Klinik Dialiva", lokasi: "SMKN 2 Depok", status: "Selesai" },
+      { id: 9, tanggal: "03 Agustus 2026", bulan: "Agustus", kegiatan: "Latihan Paskibraka Kab. Sleman", pemohon: "Kesbangpol", petugas: "PKM Sleman", lokasi: "Lap. Pemda", status: "Selesai" },
+      { id: 10, tanggal: "04 - 13 Agustus 2026", bulan: "Agustus", kegiatan: "Latihan Paskibraka Kab. Sleman (Harian)", pemohon: "Kesbangpol", petugas: "Tim P3K Dinkes", lokasi: "Lap. Pemda", status: "Selesai" }
+    ];
+
+    let eventsData = [];
+    let isAdminLoggedIn = false;
+    let petugasChartInstance = null;
+    let pemohonChartInstance = null;
+
+    // LOCAL STORAGE DATABASE MANAGER
+    function initDatabase() {
+      const stored = localStorage.getItem('kessus_events_db_2026');
+      if (stored) {
+        try {
+          eventsData = JSON.parse(stored);
+        } catch (e) {
+          eventsData = [...defaultExcelData];
+          saveDatabase();
+        }
+      } else {
+        eventsData = [...defaultExcelData];
+        saveDatabase();
+      }
+    }
+
+    function saveDatabase() {
+      localStorage.setItem('kessus_events_db_2026', JSON.stringify(eventsData));
+    }
+
+    function resetDatabaseToDefault() {
+      if (!isAdminLoggedIn) return;
+      if (confirm('Reset seluruh database kembali ke data default Excel Kegiatan P3K 2026?')) {
+        eventsData = [...defaultExcelData];
+        saveDatabase();
+        renderTable();
+        renderCalendar();
+        updateKPIs();
+        updateCharts();
+        showToast('Database berhasil di-reset ke data Excel default!');
+      }
+    }
+
+    // INITIALIZATION ON DOM READY
+    document.addEventListener('DOMContentLoaded', () => {
+      initDatabase();
+      renderTable();
+      renderCalendar();
+      updateKPIs();
+      initCharts();
+    });
+
+    // RENDER TABLE VIEW
+    function renderTable(dataToRender = eventsData) {
+      const tbody = document.getElementById('eventsTableBody');
+      const emptyState = document.getElementById('emptyState');
+
+      tbody.innerHTML = '';
+
+      if (dataToRender.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      dataToRender.forEach((item, index) => {
+        const isSelesai = item.status === 'Selesai';
+        const badgeClass = isSelesai 
+          ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+          : 'bg-amber-100 text-amber-800 border-amber-200';
+        
+        const badgeIcon = isSelesai ? 'fa-check' : 'fa-clock';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition text-slate-700';
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-center text-xs font-semibold text-slate-500">${index + 1}</td>
+          <td class="py-3 px-4 font-medium text-xs text-slate-900 whitespace-nowrap">
+            <i class="fa-regular fa-calendar text-emerald-600 mr-1.5"></i>${item.tanggal}
+          </td>
+          <td class="py-3 px-4 font-semibold text-slate-900">
+            ${item.kegiatan}
+          </td>
+          <td class="py-3 px-4 text-xs font-medium text-slate-600">
+            <span class="inline-block bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">${item.pemohon}</span>
+          </td>
+          <td class="py-3 px-4 text-xs">
+            <span class="font-medium text-slate-800">${item.petugas}</span>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-600">
+            <i class="fa-solid fa-location-dot text-red-500/80 mr-1"></i>${item.lokasi}
+          </td>
+          <td class="py-3 px-4 text-center">
+            <span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${badgeClass}">
+              <i class="fa-solid ${badgeIcon} text-[10px]"></i>
+              <span>${item.status}</span>
+            </span>
+          </td>
+          <td class="admin-only-col py-3 px-4 text-center ${isAdminLoggedIn ? '' : 'hidden'}">
+            <div class="flex items-center justify-center space-x-2">
+              <button onclick="editEvent(${item.id})" class="text-blue-600 hover:text-blue-800 transition p-1" title="Edit Agenda">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteEvent(${item.id})" class="text-red-500 hover:text-red-700 transition p-1" title="Hapus Agenda">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // RENDER CALENDAR VIEW
+    function renderCalendar() {
+      const juneContainer = document.getElementById('juneCalendarList');
+      const augustContainer = document.getElementById('augustCalendarList');
+      const juneBadge = document.getElementById('juneBadge');
+      const augustBadge = document.getElementById('augustBadge');
+
+      if (!juneContainer || !augustContainer) return;
+
+      juneContainer.innerHTML = '';
+      augustContainer.innerHTML = '';
+
+      const juneEvents = eventsData.filter(e => e.bulan === 'Juni');
+      const augustEvents = eventsData.filter(e => e.bulan === 'Agustus');
+
+      juneBadge.innerText = `${juneEvents.length} Agenda`;
+      augustBadge.innerText = `${augustEvents.length} Agenda`;
+
+      const createCard = (item) => `
+        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-xs space-y-1 hover:border-emerald-300 transition">
+          <div class="flex items-center justify-between font-semibold text-slate-800">
+            <span class="text-emerald-700 font-bold"><i class="fa-regular fa-calendar-check mr-1"></i>${item.tanggal}</span>
+            <span class="px-2 py-0.5 text-[10px] rounded-full ${item.status === 'Selesai' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${item.status}</span>
+          </div>
+          <p class="font-medium text-slate-900 leading-tight">${item.kegiatan}</p>
+          <div class="flex items-center justify-between text-slate-500 pt-1 text-[11px]">
+            <span><i class="fa-solid fa-user-doctor text-emerald-600 mr-1"></i>${item.petugas}</span>
+            <span><i class="fa-solid fa-building text-slate-400 mr-1"></i>${item.pemohon}</span>
+          </div>
+        </div>
+      `;
+
+      juneEvents.forEach(item => juneContainer.innerHTML += createCard(item));
+      augustEvents.forEach(item => augustContainer.innerHTML += createCard(item));
+    }
+
+    // UPDATE KPI STATS
+    function updateKPIs() {
+      document.getElementById('kpiTotal').innerText = eventsData.length;
+      const completed = eventsData.filter(e => e.status === 'Selesai').length;
+      document.getElementById('kpiCompleted').innerText = completed;
+      document.getElementById('kpiPending').innerText = eventsData.length - completed;
+
+      const unitsSet = new Set();
+      eventsData.forEach(e => {
+        if(e.petugas) {
+          e.petugas.split('&').forEach(p => unitsSet.add(p.trim()));
+        }
+      });
+      document.getElementById('kpiUnits').innerText = unitsSet.size;
+    }
+
+    // FILTER & SEARCH LOGIC
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const month = document.getElementById('monthFilter').value;
+      const status = document.getElementById('statusFilter').value;
+
+      const filtered = eventsData.filter(item => {
+        const matchesSearch = item.kegiatan.toLowerCase().includes(search) ||
+                              item.pemohon.toLowerCase().includes(search) ||
+                              item.petugas.toLowerCase().includes(search) ||
+                              item.lokasi.toLowerCase().includes(search);
+        const matchesMonth = month === 'ALL' || item.bulan === month;
+        const matchesStatus = status === 'ALL' || item.status === status;
+        return matchesSearch && matchesMonth && matchesStatus;
+      });
+
+      renderTable(filtered);
+    }
+
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('monthFilter').value = 'ALL';
+      document.getElementById('statusFilter').value = 'ALL';
+      renderTable(eventsData);
+    }
+
+    // TAB SWITCHING
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('border-emerald-600', 'text-emerald-700', 'font-semibold');
+        el.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      document.getElementById(`tabContent-${tabName}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tabBtn-${tabName}`);
+      activeBtn.classList.remove('border-transparent', 'text-slate-500');
+      activeBtn.classList.add('border-emerald-600', 'text-emerald-700', 'font-semibold');
+
+      if (tabName === 'analytics') {
+        updateCharts();
+      }
+    }
+
+    function toggleMobileSummary() {
+      const container = document.getElementById('statsSummaryContainer');
+      container.classList.toggle('hidden');
+    }
+
+    // AUTH & LOGIN LOGIC
+    function toggleAuthModal() {
+      if (isAdminLoggedIn) {
+        isAdminLoggedIn = false;
+        document.getElementById('authBtnText').innerText = 'Login Admin';
+        document.getElementById('authIcon').className = 'fa-solid fa-right-to-bracket text-emerald-400';
+        document.getElementById('addAgendaBtn').classList.add('hidden');
+        document.getElementById('resetDbBtn').classList.add('hidden');
+        
+        document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
+
+        document.getElementById('statusBanner').className = 'bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2.5 rounded-xl text-xs flex items-center justify-between shadow-sm';
+        document.getElementById('statusBanner').innerHTML = `
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-circle-info text-blue-600 text-sm"></i>
+            <span>Anda sedang melihat <strong>Mode Tamu (Read-Only)</strong>. Silakan klik <strong>Login Admin</strong> untuk manajemen data.</span>
+          </div>
+          <span class="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded uppercase">Public Mode</span>
+        `;
+        renderTable();
+        showToast('Logout berhasil. Anda kembali ke Mode Tamu.');
+      } else {
+        document.getElementById('loginModal').classList.remove('hidden');
+      }
+    }
+
+    function closeLoginModal() {
+      document.getElementById('loginModal').classList.add('hidden');
+      document.getElementById('loginForm').reset();
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      const user = document.getElementById('loginUsername').value.trim();
+      const pass = document.getElementById('loginPassword').value.trim();
+
+      if (user === 'admin' && pass === 'kessus2026') {
+        isAdminLoggedIn = true;
+        closeLoginModal();
+
+        document.getElementById('authBtnText').innerText = 'Logout Admin';
+        document.getElementById('authIcon').className = 'fa-solid fa-right-from-bracket text-red-400';
+        document.getElementById('addAgendaBtn').classList.remove('hidden');
+        document.getElementById('resetDbBtn').classList.remove('hidden');
+        
+        document.querySelectorAll('.admin-only-col').forEach(el => el.classList.remove('hidden'));
+
+        document.getElementById('statusBanner').className = 'bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2.5 rounded-xl text-xs flex items-center justify-between shadow-sm';
+        document.getElementById('statusBanner').innerHTML = `
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-user-check text-emerald-600 text-sm"></i>
+            <span>Sistem: <strong>Akses Admin KESSUS Aktif</strong>. Anda dapat Tambah, Edit, Hapus, dan Reset Database.</span>
+          </div>
+          <span class="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded uppercase">Mode Admin</span>
+        `;
+        renderTable();
+        showToast('Login Admin Berhasil! Hak akses manajemen data diaktifkan.');
+      } else {
+        showToast('Username atau Password yang dimasukkan tidak cocok!');
+      }
+    }
+
+    // MODAL ADD / EDIT EVENT LOGIC
+    function openAddModal() {
+      if (!isAdminLoggedIn) {
+        showToast('Silakan login sebagai admin terlebih dahulu.');
+        return;
+      }
+      document.getElementById('modalFormTitle').innerText = 'Tambah Agendakan Tugas P3K Baru';
+      document.getElementById('formEditId').value = '';
+      document.getElementById('addEventForm').reset();
+      document.getElementById('addModal').classList.remove('hidden');
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.add('hidden');
+    }
+
+    function editEvent(id) {
+      if (!isAdminLoggedIn) return;
+      const item = eventsData.find(e => e.id === id);
+      if (!item) return;
+
+      document.getElementById('modalFormTitle').innerText = 'Edit Agenda Kegiatan P3K';
+      document.getElementById('formEditId').value = item.id;
+      document.getElementById('formNama').value = item.kegiatan;
+      document.getElementById('formTanggal').value = item.tanggal;
+      document.getElementById('formBulan').value = item.bulan;
+      document.getElementById('formPemohon').value = item.pemohon;
+      document.getElementById('formLokasi').value = item.lokasi;
+      document.getElementById('formPetugas').value = item.petugas;
+      document.getElementById('formStatus').value = item.status;
+
+      document.getElementById('addModal').classList.remove('hidden');
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      
+      const editId = document.getElementById('formEditId').value;
+      const nama = document.getElementById('formNama').value;
+      const tanggal = document.getElementById('formTanggal').value;
+      const bulan = document.getElementById('formBulan').value;
+      const pemohon = document.getElementById('formPemohon').value;
+      const lokasi = document.getElementById('formLokasi').value;
+      const petugas = document.getElementById('formPetugas').value;
+      const status = document.getElementById('formStatus').value;
+
+      if (editId) {
+        const item = eventsData.find(e => e.id == editId);
+        if (item) {
+          item.kegiatan = nama;
+          item.tanggal = tanggal;
+          item.bulan = bulan;
+          item.pemohon = pemohon;
+          item.lokasi = lokasi;
+          item.petugas = petugas;
+          item.status = status;
+          showToast('Agenda kegiatan P3K berhasil diperbarui!');
+        }
+      } else {
+        const newEvent = {
+          id: Date.now(),
+          tanggal,
+          bulan,
+          kegiatan: nama,
+          pemohon,
+          petugas,
+          lokasi,
+          status
+        };
+        eventsData.unshift(newEvent);
+        showToast('Agenda kegiatan P3K baru berhasil tersimpan!');
+      }
+
+      saveDatabase();
+      renderTable();
+      renderCalendar();
+      updateKPIs();
+      updateCharts();
+      closeAddModal();
+    }
+
+    function deleteEvent(id) {
+      if (!isAdminLoggedIn) return;
+      if (confirm('Apakah Anda yakin ingin menghapus agenda kegiatan ini?')) {
+        eventsData = eventsData.filter(item => item.id !== id);
+        saveDatabase();
+        renderTable();
+        renderCalendar();
+        updateKPIs();
+        updateCharts();
+        showToast('Agenda kegiatan berhasil dihapus.');
+      }
+    }
+
+    // CHARTS INITIALIZATION & UPDATES
+    function initCharts() {
+      const petugasCounts = {};
+      eventsData.forEach(item => {
+        if(item.petugas) {
+          const list = item.petugas.split('&');
+          list.forEach(p => {
+            const name = p.trim();
+            petugasCounts[name] = (petugasCounts[name] || 0) + 1;
+          });
+        }
+      });
+
+      const pemohonCounts = {};
+      eventsData.forEach(item => {
+        if(item.pemohon) {
+          pemohonCounts[item.pemohon] = (pemohonCounts[item.pemohon] || 0) + 1;
+        }
+      });
+
+      const ctxPetugas = document.getElementById('petugasChart').getContext('2d');
+      petugasChartInstance = new Chart(ctxPetugas, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(petugasCounts),
+          datasets: [{
+            label: 'Jumlah Penugasan Medis',
+            data: Object.values(petugasCounts),
+            backgroundColor: '#16a34a',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+
+      const ctxPemohon = document.getElementById('pemohonChart').getContext('2d');
+      pemohonChartInstance = new Chart(ctxPemohon, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(pemohonCounts),
+          datasets: [{
+            data: Object.values(pemohonCounts),
+            backgroundColor: ['#0d9488', '#16a34a', '#2563eb', '#d97706', '#9333ea', '#e11d48']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function updateCharts() {
+      if (!petugasChartInstance || !pemohonChartInstance) return;
+
+      const petugasCounts = {};
+      eventsData.forEach(item => {
+        if(item.petugas) {
+          const list = item.petugas.split('&');
+          list.forEach(p => {
+            const name = p.trim();
+            petugasCounts[name] = (petugasCounts[name] || 0) + 1;
+          });
+        }
+      });
+
+      const pemohonCounts = {};
+      eventsData.forEach(item => {
+        if(item.pemohon) {
+          pemohonCounts[item.pemohon] = (pemohonCounts[item.pemohon] || 0) + 1;
+        }
+      });
+
+      petugasChartInstance.data.labels = Object.keys(petugasCounts);
+      petugasChartInstance.data.datasets[0].data = Object.values(petugasCounts);
+      petugasChartInstance.update();
+
+      pemohonChartInstance.data.labels = Object.keys(pemohonCounts);
+      pemohonChartInstance.data.datasets[0].data = Object.values(pemohonCounts);
+      pemohonChartInstance.update();
+    }
+
+    // CSV / EXCEL EXPORT
+    function exportData() {
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "No,Tanggal,Bulan,Nama Kegiatan P3K,Pemohon,Petugas,Lokasi,Status\n";
+
+      eventsData.forEach((row, i) => {
+        csvContent += `${i+1},"${row.tanggal}","${row.bulan}","${row.kegiatan}","${row.pemohon}","${row.petugas}","${row.lokasi}","${row.status}"\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "Kegiatan_P3K_Kessus_2026.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Data berhasil diexport ke CSV!');
+    }
+
+    // TOAST NOTIFICATION UTILITY
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
